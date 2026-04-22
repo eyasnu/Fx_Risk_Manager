@@ -814,7 +814,7 @@ function handleExcelUpload(e) {
         const earliestRaw = String(row[6]||'').trim();
         const latestRaw = String(row[7]||'').trim();
 
-        const validCcys = ['USD','EUR','JPY','CNY','GBP','AUD','CAD','SGD'];
+        const validCcys = ['USD','EUR','JPY','CNY'];
         if (!validCcys.includes(ccy)) { skipped++; continue; }
         if (!amount || isNaN(amount) || amount<=0) { skipped++; continue; }
 
@@ -861,16 +861,16 @@ function downloadTemplate() {
     ['FX Risk Manager — 작성 안내'],
     [''],
     ['■ 유형: IN (외화 수취) 또는 OUT (외화 지급)'],
-    ['■ 통화: USD, EUR, JPY, CNY, GBP, AUD, CAD, SGD'],
+    ['■ 통화: USD, EUR, JPY, CNY'],
     ['■ 금액: 양수 숫자 (쉼표/기호 없이)'],
     ['■ 예정일: YYYY-MM-DD 형식, 오늘 이후~2년 이내'],
     [''],
     ['■ 고정여부'],
     ['  FIXED: 날짜 변경 불가 (헤지 전략에서 고정됨)'],
-    ['  FLEX: 날짜 조정 가능 → 최조기일·최만기일 필수 입력'],
+    ['  FLEX: 날짜 조정 가능 → 조정 가능 일정 1, 2 필수 입력'],
     [''],
-    ['■ 최조기일: 앞당길 수 있는 가장 빠른 날짜 (YYYY-MM-DD)'],
-    ['■ 최만기일: 뒤로 미룰 수 있는 가장 늦은 날짜 (YYYY-MM-DD)'],
+    ['■ 조정 가능 일정1: 앞당길 수 있는 가장 빠른 날짜 (YYYY-MM-DD)'],
+    ['■ 조정 가능 일정2: 뒤로 미룰 수 있는 가장 늦은 날짜 (YYYY-MM-DD)'],
     ['  FIXED일 경우 비워두거나 예정일과 동일하게 입력'],
     [''],
     ['■ 1행(헤더)과 예시 행(2~3행)은 업로드 시 자동으로 무시됩니다'],
