@@ -1215,7 +1215,7 @@ async function loadFxRates() {
   for(const dateStr of dates) {
     try {
       const key = apiKey || 'DEMO';
-      const url = `https://oapi.koreaexim.go.kr/site/program/financial/exchangeJSON?authkey=${key}&searchdate=${dateStr}&data=AP01`;
+      const url = `/api/site/program/financial/exchangeJSON?authkey=${key}&searchdate=${dateStr}&data=AP01`;
       const res = await fetch(url);
 
       if(!res.ok){
