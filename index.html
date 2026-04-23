@@ -1515,44 +1515,54 @@ function getAllowedMonths(t, months) {
   return months.filter(m => m >= getMonthKey(earliest) && m <= getMonthKey(latest));
 }
 
-function doOptimize(allTx,forCcy,months){
-  const netByMonth={};months.forEach(m=>netByMonth[m]=0);
-  forCcy.filter(t=>t.locked).forEach(t=>{netByMonth[getMonthKey(t.date)]+=(t.type==='in'?t.amount:-t.amount);});
-  const adjustable=[...forCcy.filter(t=>!t.locked)].sort((a,b)=>b.amount-a.amount);
-  adjustable.forEach(t=>{
-    const sign=t.type==='in'?1:-1;
-    const allowed=getAllowedMonths(t,months);
-    const currentMonth=getMonthKey(t.date);
+function doOptimize(allTx, forCcy, months) {
+  // 매칭 윈도우를 가져옴 (DOM에서 읽음)
+  const mw = parseInt(document.getElementById('match-window').value) || 0;
 
-    // 실제 이동 가능한 월이 현재 월뿐이면 건너뜀
-    if(allowed.length<=1 && allowed[0]===currentMonth){
-      netByMonth[currentMonth]+=sign*t.amount;
-      return;
+  const adjustable = [...forCcy.filter(t => !t.locked)].sort((a, b) => b.amount - a.amount);
+
+  adjustable.forEach(t => {
+    const earliest = t.earliest || t.date;
+    const latest   = t.latest   || t.date;
+
+    // 후보 날짜 목록: earliest~latest 범위 내 모든 날짜를 1일 단위로 열거
+    const candidates = [];
+    const cur = new Date(earliest);
+    const end = new Date(latest);
+    while (cur <= end) {
+      candidates.push(cur.toISOString().slice(0, 10));
+      cur.setDate(cur.getDate() + 1);
     }
 
-    let best=currentMonth; let bestAbs=Infinity;
-    allowed.forEach(m=>{
-      const a=Math.abs(netByMonth[m]+sign*t.amount);
-      if(a<bestAbs){bestAbs=a;best=m;}
-    });
+    // 현재 날짜도 포함 보장
+    if (!candidates.includes(t.date)) candidates.push(t.date);
 
-    if(best!==currentMonth){
-      // 이동할 날짜: 해당 월의 earliest 또는 original day 존중
-      const earliest=t.earliest||t.date;
-      const latest=t.latest||t.date;
-      // best 월 내에서 earliest/latest 범위에 맞는 날짜 결정
-      const bestEarliest=getMonthKey(earliest)===best?earliest.slice(8,10):'01';
-      const bestLatest=getMonthKey(latest)===best?latest.slice(8,10):'28';
-      // 중간값 사용 (earliest가 best월이면 earliest일, latest가 best월이면 latest일, 아니면 15일)
-      let day='15';
-      if(getMonthKey(earliest)===best) day=bestEarliest;
-      else if(getMonthKey(latest)===best) day=bestLatest;
-      const newDate=best+'-'+day;
-
-      const idx=allTx.findIndex(x=>x.id===t.id);
-      if(idx>=0){allTx[idx].date=newDate;allTx[idx].moved=true;t.date=newDate;t.moved=true;}
+    // 각 후보 날짜에 배치했을 때의 잔여 익스포져를 계산
+    function calcResidual(candidateDate) {
+      // allTx에서 이 거래만 날짜를 바꿔서 computeDailyMatching 실행
+      const snapshot = allTx.map(x => x.id === t.id ? { ...x, date: candidateDate } : { ...x });
+      const { residuals } = computeDailyMatching(snapshot.filter(x => x.ccy === t.ccy), mw);
+      return residuals.reduce((s, r) => s + r.remaining, 0);
     }
-    netByMonth[best]+=sign*t.amount;
+
+    let bestDate = t.date;
+    let bestResidual = calcResidual(t.date);
+
+    for (const cand of candidates) {
+      if (cand === t.date) continue;
+      const r = calcResidual(cand);
+      if (r < bestResidual) { bestResidual = r; bestDate = cand; }
+    }
+
+    if (bestDate !== t.date) {
+      const idx = allTx.findIndex(x => x.id === t.id);
+      if (idx >= 0) {
+        allTx[idx].date = bestDate;
+        allTx[idx].moved = true;
+        t.date = bestDate;
+        t.moved = true;
+      }
+    }
   });
 }
 
