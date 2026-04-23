@@ -402,7 +402,7 @@ tbody tr:hover{background:rgba(0,212,255,0.03);}
       </div>
     </div>
     <div class="panel" id="exp-panel" style="display:none">
-      <div class="panel-header"><div class="panel-title">통화별 환위험 익스포져</div></div>
+      <div class="panel-header"><div class="panel-title">통화별 환위험 익스포져(외화유출입 시점 고려없이 단순 계산 결과입니다.)</div></div>
       <div class="panel-body" id="exp-body"></div>
     </div>
   </div>
@@ -429,7 +429,7 @@ tbody tr:hover{background:rgba(0,212,255,0.03);}
               <span style="font-family:var(--mono);font-size:12px;color:var(--muted)">일 이내 유입/유출 상계 인정</span>
             </div>
             <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:6px;padding:6px 10px;background:rgba(0,212,255,0.05);border-radius:6px;border:1px solid rgba(0,212,255,0.1)">
-              예) 7일 설정 시: 5/8 유입 ↔ 5/12 유출(4일차이) → 상계 인정
+              예) X일 이후 외화유출에 대비해 외화유입 건 바로 네고하지 않아도 되는 경우, X일 입력
             </div>
           </div>
           <div>
@@ -455,7 +455,7 @@ tbody tr:hover{background:rgba(0,212,255,0.03);}
 
         <!-- ③ 익스포져 변화량 3단 -->
         <div class="panel" style="margin-bottom:14px">
-          <div class="panel-header"><div class="panel-title">익스포져 변화량 — 통화별 3단계</div></div>
+          <div class="panel-header"><div class="panel-title">익스포져 변화량 — 통화별 3단계(유입 시점과 유출 시점이 매칭 인정 범위 이내인 경우만 익스포져 감소로 처리)</div></div>
           <div class="panel-body"><div class="exp-compare" id="exp-compare"></div></div>
         </div>
 
@@ -770,8 +770,8 @@ function addTx() {
   const maxDate=new Date(today); maxDate.setFullYear(maxDate.getFullYear()+2);
   if (txDate<today) { alert('오늘 이후 날짜만 입력 가능합니다'); return; }
   if (txDate>maxDate) { alert('향후 2년 이내 날짜만 입력 가능합니다'); return; }
-  if (flex && earliest > date) { alert('최조기일은 예정일보다 이전이어야 합니다'); return; }
-  if (flex && latest < date) { alert('최만기일은 예정일보다 이후이어야 합니다'); return; }
+  if (flex && earliest > date) { alert('조정 가능 일정(이른 날짜)는 예정일보다 이전이어야 합니다'); return; }
+  if (flex && latest < date) { alert('조정 가능 일정(늦은 날짜)는은 예정일보다 이후이어야 합니다'); return; }
 
   transactions.push({ id:Date.now(), type:selectedType, ccy, amount, date, memo,
     locked: !flex, earliest, latest });
@@ -935,16 +935,16 @@ function downloadTemplate() {
     ['FX Risk Manager — 작성 안내'],
     [''],
     ['■ 유형: IN (외화 수취) 또는 OUT (외화 지급)'],
-    ['■ 통화: USD, EUR, JPY, CNY, GBP, AUD, CAD, SGD'],
+    ['■ 통화: USD, EUR, JPY, CNY'],
     ['■ 금액: 양수 숫자 (쉼표/기호 없이)'],
     ['■ 예정일: YYYY-MM-DD 형식, 오늘 이후~2년 이내'],
     [''],
     ['■ 고정여부'],
     ['  FIXED: 날짜 변경 불가 (헤지 전략에서 고정됨)'],
-    ['  FLEX: 날짜 조정 가능 → 최조기일·최만기일 필수 입력'],
+    ['  FLEX: 날짜 조정 가능 → 조정 가능 일정(이른 날짜)·조정 가능 일정(늦은 날짜) 필수 입력'],
     [''],
-    ['■ 최조기일: 앞당길 수 있는 가장 빠른 날짜 (YYYY-MM-DD)'],
-    ['■ 최만기일: 뒤로 미룰 수 있는 가장 늦은 날짜 (YYYY-MM-DD)'],
+    ['■ 조정 가능 일정(이른 날짜): 앞당길 수 있는 가장 빠른 날짜 (YYYY-MM-DD)'],
+    ['■ 조정 가능 일정(늦은 날짜): 뒤로 미룰 수 있는 가장 늦은 날짜 (YYYY-MM-DD)'],
     ['  FIXED일 경우 비워두거나 예정일과 동일하게 입력'],
     [''],
     ['■ 1행(헤더)과 예시 행(2~3행)은 업로드 시 자동으로 무시됩니다'],
@@ -1157,7 +1157,7 @@ function runMatching(){
 }
 
 // ===== FX RATE (수동 입력) =====
-let fxRates = {USD:1380, EUR:1500, JPY:9.2, CNY:190}; // 기본값 (1엔 기준)
+let fxRates = {USD:1480, EUR:1730, JPY:9.28, CNY:216}; // 기본값 (1엔 기준)
 const MANUAL_RATES_KEY = 'fxrisk_manual_rates_v1';
 
 function applyManualRates(){
